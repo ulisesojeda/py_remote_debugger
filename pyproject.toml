@@ -6,7 +6,7 @@ authors = [{ name="Ulises", email="ulises.odysseus22@gmail.com" }]
 readme = "README.md"
 requires-python = ">=3.6"
 license = { text = "MIT" }
-dependencies = []
+homepage = "https://github.com/ulisesojeda/py_remote_debugger"
 
 [build-system]
 requires = ["setuptools", "wheel"]
