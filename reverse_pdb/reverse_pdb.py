@@ -1,31 +1,48 @@
 import logging
 import pdb
 import socket
+from functools import wraps
+import time
+import os
+import sys
 
-logging.basicConfig()
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
 
 
-def retry(func, except_ls, retries=0):
-    if retries < 0:
-        return
-    try:
-        func()
-    except Exception as e:
-        if e in except_ls:
-            retry(func, except_ls, retries=retries-1)
-
-def retry(except_ls, retries=0):
+def retry(except_ls, retries=0, delay=5):
     def decorator(func):
+        @wraps(func)
         def wrapper(*args, **kwargs):
-            print(f"[LOG] {msg}")
-            return func(*args, **kwargs)
+            cur_retries = retries
+            while True:
+                cur_retries -= 1
+                try:
+                    return func(*args, **kwargs)
+                except Exception as e:
+                    if e.__class__ in except_ls and cur_retries >= 0:
+                        logging.info("retrying...")
+                        time.sleep(delay)
+                    else:
+                        raise
+
         return wrapper
+
     return decorator
 
+
 def debugger(sock):
+    os.dup2(sock.fileno(), sys.stdin.fileno())
+    os.dup2(sock.fileno(), sys.stdout.fileno())
+    os.dup2(sock.fileno(), sys.stderr.fileno())
+
     handler = sock.makefile("rw")
-    db = pdb.Pdb(stdin=handler, stdout=handler)
-    return db
+    rdb = pdb.Pdb(stdin=handler, stdout=handler)
+    return rdb
+
 
 def remote_pdb(addr: str, port: int):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -38,28 +55,11 @@ def remote_pdb(addr: str, port: int):
     logging.info(f"Connected debugger from {address[0]}:{address[1]}")
     return debugger(clientsocket)
 
+
 @retry(except_ls=[ConnectionRefusedError], retries=3)
-def remote_pdb_reverse_proxy(addr: str, port: int):
+def remote_pdb_reverse(addr: str, port: int):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     logging.info(f"Connecting to remote debugger by reverse proxy: {addr}:{port} ")
     sock.connect((addr, port))
     logging.info(f"Connected to remote debugger by reverse proxy: {addr}:{port} ")
     return debugger(sock)
-
-
-def main():
-    db = remote_pdb_reverse_proxy("10.30.12.18", 4444)
-    db = remote_pdb_reverse_proxy("localhost", 4444)
-    val = 10
-    y = 22
-    print(1)
-    print(2)
-    print(3)
-    db.set_trace()
-    print(4)
-    db.set_trace()
-    print("Done")
-
-
-if __name__ == "__main__":
-    main()

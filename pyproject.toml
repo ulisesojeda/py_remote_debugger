@@ -1,0 +1,13 @@
+[project]
+name = "reverse_pdb"
+version = "0.0.1"
+description = "Remote debugging with pdb using reverse and direct connections"
+authors = [{ name="Ulises", email="ulises.odysseus22@gmail.com" }]
+readme = "README.md"
+requires-python = ">=3.6"
+license = { text = "MIT" }
+dependencies = []
+
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
